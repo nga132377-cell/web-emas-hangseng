@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Analisis Performa Emas & Hang Seng</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f172a',
+                        darkcard: '#1e293b',
+                        lightbg: '#f8fafc',
+                        lightcard: '#ffffff'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-lightbg dark:bg-darkbg text-slate-800 dark:text-slate-100 transition-colors duration-200 min-h-screen font-sans pb-12">
+
+    <!-- Header Navigation -->
+    <header class="border-b border-slate-200 dark:border-slate-800 bg-lightcard dark:bg-darkcard sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-amber-500/10 text-amber-500 rounded-lg">
+                    <i data-lucide="candlestick-chart" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Dashboard Pasar Emas & Hang Seng</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Analisis Pergerakan Harga & Candlestick Terpisah</p>
+                </div>
+            </div>
+            <button id="themeToggleBtn" onclick="toggleTheme()" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i id="themeIcon" data-lucide="moon" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 space-y-6">
+
+        <!-- Asset Selection Tabs -->
+        <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 bg-lightcard dark:bg-darkcard p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <!-- Left: Asset Selector Tabs -->
+            <div class="flex items-center space-x-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800 flex-1 sm:flex-initial">
+                <button id="assetTabGold" onclick="setAsset('gold')" class="asset-tab flex-1 sm:flex-initial px-5 py-2 rounded-lg text-sm font-bold transition bg-white dark:bg-slate-800 shadow-sm text-amber-500 flex items-center justify-center gap-2">
+                    <span>🪙 Emas (XAU/USD)</span>
+                </button>
+                <button id="assetTabHS" onclick="setAsset('hangseng')" class="asset-tab flex-1 sm:flex-initial px-5 py-2 rounded-lg text-sm font-bold transition text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center gap-2">
+                    <span>📈 Hang Seng (HSI)</span>
+                </button>
+            </div>
+
+            <!-- Right: Timeframe Selector (1H, 4H, 1D) -->
+            <div class="flex items-center space-x-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                <span class="text-xs font-bold text-slate-400 px-2 uppercase">Timeframe:</span>
+                <button id="tf-1h" onclick="setTimeframe('1H')" class="tf-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-white dark:bg-slate-800 shadow-sm text-amber-500">1H</button>
+                <button id="tf-4h" onclick="setTimeframe('4H')" class="tf-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-900 dark:hover:text-white">4H</button>
+                <button id="tf-1d" onclick="setTimeframe('1D')" class="tf-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-900 dark:hover:text-white">1D</button>
+            </div>
+        </div>
+
+        <!-- Single Asset Detailed Summary Card -->
+        <div class="bg-lightcard dark:bg-darkcard p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <span id="assetCategoryBadge" class="text-xs font-bold uppercase tracking-wider text-amber-500">Logam Mulia</span>
+                    <h2 id="assetTitle" class="text-2xl font-extrabold">Emas (XAU/USD)</h2>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <div id="assetPrice" class="text-3xl font-extrabold">$2,680.50</div>
+                        <div id="assetNetChange" class="text-sm font-semibold text-slate-500">+$10.50 (Perubahan Periode)</div>
+                    </div>
+                    <span id="assetBadge" class="px-3 py-1.5 rounded-xl text-sm font-extrabold bg-emerald-500/10 text-emerald-500 flex items-center gap-1">
+                        <i id="assetBadgeIcon" data-lucide="arrow-up-right" class="w-5 h-5"></i>
+                        <span id="assetChangePct">+0.39%</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Asset Metrics Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 mt-6 border-t border-slate-100 dark:border-slate-800 text-xs">
+                <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
+                    <span class="text-slate-400 block mb-1">Open (<span class="tf-label">1H</span>)</span>
+                    <span id="metricOpen" class="text-sm font-bold">$0.00</span>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
+                    <span class="text-slate-400 block mb-1">High (<span class="tf-label">1H</span>)</span>
+                    <span id="metricHigh" class="text-sm font-bold text-emerald-500">$0.00</span>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
+                    <span class="text-slate-400 block mb-1">Low (<span class="tf-label">1H</span>)</span>
+                    <span id="metricLow" class="text-sm font-bold text-rose-500">$0.00</span>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl">
+                    <span class="text-slate-400 block mb-1">Close (Terakhir)</span>
+                    <span id="metricClose" class="text-sm font-bold">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dedicated Chart Container -->
+        <div class="bg-lightcard dark:bg-darkcard p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div>
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <span>Grafik Pergerakan</span>
+                        <span id="chartAssetLabel" class="text-amber-500">Emas (XAU/USD)</span>
+                        <span id="chartTfLabel" class="text-slate-400 text-sm font-normal">- Timeframe 1H</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Pilih antara grafik garis harga atau visualisasi pergerakan Lilin (Candlestick)</p>
+                </div>
+
+                <!-- Chart Type Selector -->
+                <div class="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <button id="chartTypeLine" onclick="setChartType('line')" class="chart-type-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-white dark:bg-slate-800 shadow-sm text-amber-500 flex items-center gap-1.5">
+                        <i data-lucide="line-chart" class="w-4 h-4"></i>
+                        <span>Line Chart</span>
+                    </button>
+                    <button id="chartTypeCandle" onclick="setChartType('candlestick')" class="chart-type-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5">
+                        <i data-lucide="candlestick-chart" class="w-4 h-4"></i>
+                        <span>Candlestick (Lilin)</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="relative h-80 sm:h-96 w-full">
+                <canvas id="assetChart"></canvas>
+            </div>
+        </div>
+
+        <!-- OHLC History Table Section -->
+        <div class="bg-lightcard dark:bg-darkcard p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                <div>
+                    <h3 class="font-bold text-lg">Tabel Log Lilin OHLC (<span id="tableTfLabel" class="text-amber-500">1H</span>)</h3>
+                    <p class="text-xs text-slate-500">Rincian harga Open, High, Low, Close per interval lilin</p>
+                </div>
+                <button onclick="exportHistoryToCSV()" class="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-1.5">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>Export CSV</span>
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-50 dark:bg-slate-900/50 text-slate-500 text-xs uppercase tracking-wider">
+                        <tr>
+                            <th class="py-3 px-4 rounded-l-lg">Interval Waktu</th>
+                            <th class="py-3 px-4">Open</th>
+                            <th class="py-3 px-4">High</th>
+                            <th class="py-3 px-4">Low</th>
+                            <th class="py-3 px-4">Close</th>
+                            <th class="py-3 px-4">% Perubahan</th>
+                            <th class="py-3 px-4 rounded-r-lg">Status Lilin</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- App JavaScript Logic -->
+    <script>
+        let currentAsset = 'gold'; // 'gold' | 'hangseng'
+        let currentTimeframe = '1H'; // '1H' | '4H' | '1D'
+        let currentChartType = 'line'; // 'line' | 'candlestick'
+        let chartInstance = null;
+
+        // Dataset OHLC Terpisah Per Aset & Timeframe
+        const dataset = {
+            gold: {
+                title: 'Emas (XAU/USD)',
+                unit: '$',
+                category: 'Logam Mulia',
+                color: '#f59e0b',
+                '1H': {
+                    labels: ['04:00', '05:00', '06:00', '07:00', '08:00', '09:00', 'Sekarang (10:00)'],
+                    candles: [
+                        { o: 2668.00, h: 2671.50, l: 2667.20, c: 2670.00 },
+                        { o: 2670.00, h: 2674.00, l: 2669.50, c: 2672.50 },
+                        { o: 2672.50, h: 2673.20, l: 2670.00, c: 2671.80 },
+                        { o: 2671.80, h: 2675.50, l: 2671.00, c: 2674.10 },
+                        { o: 2674.10, h: 2677.80, l: 2673.50, c: 2676.50 },
+                        { o: 2676.50, h: 2679.50, l: 2675.80, c: 2678.00 },
+                        { o: 2678.00, h: 2682.00, l: 2677.50, c: 2680.50 }
+                    ]
+                },
+                '4H': {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Sekarang'],
+                    candles: [
+                        { o: 2650.00, h: 2658.00, l: 2648.00, c: 2655.00 },
+                        { o: 2655.00, h: 2662.00, l: 2653.00, c: 2660.00 },
+                        { o: 2660.00, h: 2668.00, l: 2658.50, c: 2665.50 },
+                        { o: 2665.50, h: 2672.00, l: 2663.00, c: 2670.00 },
+                        { o: 2670.00, h: 2675.00, l: 2668.00, c: 2672.00 },
+                        { o: 2672.00, h: 2679.00, l: 2671.00, c: 2677.00 },
+                        { o: 2677.00, h: 2682.00, l: 2676.00, c: 2680.50 }
+                    ]
+                },
+                '1D': {
+                    labels: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Hari Ini'],
+                    candles: [
+                        { o: 2620.00, h: 2635.00, l: 2618.00, c: 2630.00 },
+                        { o: 2630.00, h: 2645.00, l: 2625.00, c: 2642.00 },
+                        { o: 2642.00, h: 2655.00, l: 2638.00, c: 2650.00 },
+                        { o: 2650.00, h: 2670.00, l: 2648.00, c: 2665.00 },
+                        { o: 2665.00, h: 2668.00, l: 2652.00, c: 2658.00 },
+                        { o: 2658.00, h: 2675.00, l: 2656.00, c: 2672.00 },
+                        { o: 2672.00, h: 2682.00, l: 2670.00, c: 2680.50 }
+                    ]
+                }
+            },
+            hangseng: {
+                title: 'Hang Seng (HSI)',
+                unit: 'pt',
+                category: 'Indeks Saham',
+                color: '#3b82f6',
+                '1H': {
+                    labels: ['04:00', '05:00', '06:00', '07:00', '08:00', '09:00', 'Sekarang (10:00)'],
+                    candles: [
+                        { o: 20580, h: 20600, l: 20530, c: 20550 },
+                        { o: 20550, h: 20560, l: 20500, c: 20520 },
+                        { o: 20520, h: 20540, l: 20490, c: 20500 },
+                        { o: 20500, h: 20510, l: 20465, c: 20480 },
+                        { o: 20480, h: 20490, l: 20440, c: 20460 },
+                        { o: 20460, h: 20475, l: 20420, c: 20440 },
+                        { o: 20440, h: 20465, l: 20430, c: 20450 }
+                    ]
+                },
+                '4H': {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Sekarang'],
+                    candles: [
+                        { o: 20750, h: 20780, l: 20670, c: 20700 },
+                        { o: 20700, h: 20710, l: 20620, c: 20650 },
+                        { o: 20650, h: 20660, l: 20580, c: 20600 },
+                        { o: 20600, h: 20610, l: 20500, c: 20520 },
+                        { o: 20520, h: 20535, l: 20460, c: 20480 },
+                        { o: 20480, h: 20490, l: 20400, c: 20420 },
+                        { o: 20420, h: 20465, l: 20410, c: 20450 }
+                    ]
+                },
+                '1D': {
+                    labels: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Hari Ini'],
+                    candles: [
+                        { o: 21000, h: 21050, l: 20880, c: 20900 },
+                        { o: 20900, h: 20920, l: 20790, c: 20820 },
+                        { o: 20820, h: 20850, l: 20720, c: 20750 },
+                        { o: 20750, h: 20760, l: 20580, c: 20600 },
+                        { o: 20600, h: 20620, l: 20510, c: 20550 },
+                        { o: 20550, h: 20560, l: 20450, c: 20480 },
+                        { o: 20480, h: 20490, l: 20410, c: 20450 }
+                    ]
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initTheme();
+            initChart();
+            setAsset('gold');
+        });
+
+        function initTheme() {
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                updateThemeIcon('sun');
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeIcon('moon');
+            }
+        }
+
+        function toggleTheme() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+                updateThemeIcon('moon');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+                updateThemeIcon('sun');
+            }
+            if (chartInstance) chartInstance.update();
+        }
+
+        function updateThemeIcon(iconName) {
+            const btn = document.getElementById('themeToggleBtn');
+            btn.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5"></i>`;
+            lucide.createIcons();
+        }
+
+        function setAsset(assetKey) {
+            currentAsset = assetKey;
+
+            // Switch Active Tab Styling
+            document.querySelectorAll('.asset-tab').forEach(tab => {
+                tab.classList.remove('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-amber-500', 'text-blue-500');
+                tab.classList.add('text-slate-500');
+            });
+
+            if (assetKey === 'gold') {
+                document.getElementById('assetTabGold').classList.add('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-amber-500');
+            } else {
+                document.getElementById('assetTabHS').classList.add('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-blue-500');
+            }
+
+            updateDashboard();
+        }
+
+        function setTimeframe(tf) {
+            currentTimeframe = tf;
+
+            document.querySelectorAll('.tf-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-amber-500');
+                btn.classList.add('text-slate-500');
+            });
+
+            const activeBtn = document.getElementById(`tf-${tf.toLowerCase()}`);
+            activeBtn.classList.add('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-amber-500');
+            activeBtn.classList.remove('text-slate-500');
+
+            document.querySelectorAll('.tf-label').forEach(el => el.innerText = tf);
+            document.getElementById('chartTfLabel').innerText = `- Timeframe ${tf}`;
+            document.getElementById('tableTfLabel').innerText = tf;
+
+            updateDashboard();
+        }
+
+        function setChartType(type) {
+            currentChartType = type;
+
+            document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-amber-500');
+                btn.classList.add('text-slate-500');
+            });
+
+            if (type === 'line') {
+                document.getElementById('chartTypeLine').classList.add('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-amber-500');
+            } else {
+                document.getElementById('chartTypeCandle').classList.add('bg-white', 'dark:bg-slate-800', 'shadow-sm', 'text-amber-500');
+            }
+
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            const assetInfo = dataset[currentAsset];
+            const data = assetInfo[currentTimeframe];
+            const candles = data.candles;
+
+            const firstCandle = candles[0];
+            const lastCandle = candles[candles.length - 1];
+
+            const openPrice = firstCandle.o;
+            const closePrice = lastCandle.c;
+            const diffPrice = closePrice - openPrice;
+            const pctChange = ((diffPrice / openPrice) * 100).toFixed(2);
+
+            const highPrice = Math.max(...candles.map(c => c.h));
+            const lowPrice = Math.min(...candles.map(c => c.l));
+
+            // Formatters
+            const fmt = (val) => assetInfo.unit === '$' ? `$${val.toFixed(2)}` : `${val.toLocaleString('en-US', {minimumFractionDigits: 2})} pt`;
+
+            // UI Header Card Injection
+            document.getElementById('assetCategoryBadge').innerText = assetInfo.category;
+            document.getElementById('assetTitle').innerText = assetInfo.title;
+            document.getElementById('chartAssetLabel').innerText = assetInfo.title;
+
+            document.getElementById('assetPrice').innerText = fmt(closePrice);
+            document.getElementById('assetNetChange').innerText = `${diffPrice >= 0 ? '+' : ''}${fmt(diffPrice)} (${currentTimeframe})`;
+            document.getElementById('assetChangePct').innerText = `${pctChange >= 0 ? '+' : ''}${pctChange}%`;
+            updateBadgeStyle(pctChange);
+
+            // Metrics Injections
+            document.getElementById('metricOpen').innerText = fmt(openPrice);
+            document.getElementById('metricHigh').innerText = fmt(highPrice);
+            document.getElementById('metricLow').innerText = fmt(lowPrice);
+            document.getElementById('metricClose').innerText = fmt(closePrice);
+
+            updateChart(data, assetInfo);
+            renderTable(data, assetInfo);
+        }
+
+        function updateBadgeStyle(pctValue) {
+            const badge = document.getElementById('assetBadge');
+            const icon = document.getElementById('assetBadgeIcon');
+            if (pctValue >= 0) {
+                badge.className = 'px-3 py-1.5 rounded-xl text-sm font-extrabold bg-emerald-500/10 text-emerald-500 flex items-center gap-1';
+                icon.setAttribute('data-lucide', 'arrow-up-right');
+            } else {
+                badge.className = 'px-3 py-1.5 rounded-xl text-sm font-extrabold bg-rose-500/10 text-rose-500 flex items-center gap-1';
+                icon.setAttribute('data-lucide', 'arrow-down-right');
+            }
+            lucide.createIcons();
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('assetChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function updateChart(data, assetInfo) {
+            const labels = data.labels;
+            const candles = data.candles;
+
+            if (currentChartType === 'line') {
+                // Line Chart (Harga Nominal Sesuai Aset)
+                const closePrices = candles.map(c => c.c);
+                chartInstance.config.type = 'line';
+                chartInstance.data = {
+                    labels: labels,
+                    datasets: [{
+                        label: assetInfo.title,
+                        borderColor: assetInfo.color,
+                        backgroundColor: `${assetInfo.color}20`,
+                        borderWidth: 3,
+                        tension: 0.3,
+                        fill: true,
+                        data: closePrices
+                    }]
+                };
+            } else {
+                // Visualisasi Candlestick (Lilin Bullish Hijau / Bearish Merah)
+                chartInstance.config.type = 'bar';
+                chartInstance.data = {
+                    labels: labels,
+                    datasets: [{
+                        label: `${assetInfo.title} OHLC Range`,
+                        backgroundColor: candles.map(c => c.c >= c.o ? 'rgba(16, 185, 129, 0.85)' : 'rgba(244, 63, 94, 0.85)'),
+                        borderColor: candles.map(c => c.c >= c.o ? '#10b981' : '#f43f5e'),
+                        borderWidth: 2,
+                        data: candles.map(c => [c.o, c.c])
+                    }]
+                };
+            }
+            chartInstance.update();
+        }
+
+        function renderTable(data, assetInfo) {
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+
+            const candles = data.candles;
+            const labels = data.labels;
+
+            const fmt = (val) => assetInfo.unit === '$' ? `$${val.toFixed(2)}` : `${val.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+
+            for (let i = candles.length - 1; i >= 0; i--) {
+                const c = candles[i];
+                const label = labels[i];
+                const pct = (((c.c - c.o) / c.o) * 100).toFixed(2);
+                const isBullish = c.c >= c.o;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-slate-400 font-semibold">${label}</td>
+                    <td class="py-3 px-4">${fmt(c.o)}</td>
+                    <td class="py-3 px-4 text-emerald-500 font-medium">${fmt(c.h)}</td>
+                    <td class="py-3 px-4 text-rose-500 font-medium">${fmt(c.l)}</td>
+                    <td class="py-3 px-4 font-bold">${fmt(c.c)}</td>
+                    <td class="py-3 px-4 font-bold ${pct >= 0 ? 'text-emerald-500' : 'text-rose-500'}">${pct >= 0 ? '+' : ''}${pct}%</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${isBullish ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}">
+                            ${isBullish ? '🟩 Bullish (Naik)' : '🟥 Bearish (Turun)'}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        function exportHistoryToCSV() {
+            const assetInfo = dataset[currentAsset];
+            const data = assetInfo[currentTimeframe];
+            const candles = data.candles;
+            const labels = data.labels;
+
+            let csvContent = `data:text/csv;charset=utf-8,Aset: ${assetInfo.title}, Timeframe: ${currentTimeframe}\nInterval Waktu,Open,High,Low,Close,% Perubahan\n`;
+
+            for (let i = 0; i < labels.length; i++) {
+                const c = candles[i];
+                const pct = (((c.c - c.o) / c.o) * 100).toFixed(2);
+                csvContent += `${labels[i]},${c.o},${c.h},${c.l},${c.c},${pct}%\n`;
+            }
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `ohlc_${currentAsset}_${currentTimeframe}_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
